@@ -22,8 +22,9 @@ Route::prefix('solicitudes')->name('solicitudes.')->group(function () {
     Route::post('/{solicitud}/cancelar', [SolicitudController::class, 'cancelar'])->name('cancelar');
     Route::get('/{solicitud}/entrega/nueva',        [EntregaController::class, 'create'])->name('entrega.create');
     Route::post('/{solicitud}/entrega',             [EntregaController::class, 'store'])->name('entrega.store');
-    Route::get('/{solicitud}/entrega/{entregaId}',  [EntregaController::class, 'show'])->name('entrega.show');
-    Route::put('/{solicitud}/entrega/{entregaId}',  [EntregaController::class, 'update'])->name('entrega.update');
+    Route::get('/{solicitud}/entrega/{entregaId}',    [EntregaController::class, 'show'])->name('entrega.show');
+    Route::put('/{solicitud}/entrega/{entregaId}',    [EntregaController::class, 'update'])->name('entrega.update');
+    Route::post('/{solicitud}/entrega/{entregaId}/cancelar', [EntregaController::class, 'cancelar'])->name('entrega.cancelar');
 });
 
 // Autorizaciones

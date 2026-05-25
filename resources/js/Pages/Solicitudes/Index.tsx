@@ -465,25 +465,37 @@ export default function SolicitudesIndex({ solicitudes, filtros }: Props) {
                                         <thead>
                                             <tr>
                                                 <th style={{ width: 30 }}>#</th>
-                                                <th style={{ width: 180 }}>Folio entrega</th>
-                                                <th style={{ width: 140 }}>Fecha</th>
+                                                <th style={{ width: 170 }}>Folio entrega</th>
+                                                <th style={{ width: 130 }}>Fecha</th>
+                                                <th style={{ width: 90 }}>Estatus</th>
                                                 <th style={{ width: 120 }} className="num">Total</th>
-                                                <th style={{ width: 60 }}></th>
+                                                <th style={{ width: 50 }}></th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {s.entregas.map((e, i) => (
-                                                <tr key={e.id} style={{ cursor: 'pointer' }}
-                                                    onClick={() => router.visit(`/solicitudes/${s.folio}/entrega/${e.id}`)}
-                                                    onMouseEnter={ev => (ev.currentTarget.style.background = 'var(--accent-soft)')}
-                                                    onMouseLeave={ev => (ev.currentTarget.style.background = '')}>
-                                                    <td className="num muted">{i + 1}</td>
-                                                    <td className="mono" style={{ fontWeight: 600 }}>{e.folio}</td>
-                                                    <td className="muted">{e.fecha_entrega ? mxFecha(e.fecha_entrega) : '—'}</td>
-                                                    <td className="num"><strong>{mxMoney(Number(e.total))}</strong></td>
-                                                    <td style={{ textAlign: 'center', color: 'var(--accent)', fontSize: 12 }}>Ver ▶</td>
-                                                </tr>
-                                            ))}
+                                            {s.entregas.map((e, i) => {
+                                                const isCancelled = e.estatus === 'Cancelada';
+                                                return (
+                                                    <tr key={e.id}
+                                                        style={{ cursor: 'pointer', opacity: isCancelled ? 0.65 : 1 }}
+                                                        onClick={() => router.visit(`/solicitudes/${s.folio}/entrega/${e.id}`)}
+                                                        onMouseEnter={ev => (ev.currentTarget.style.background = isCancelled ? 'var(--field-disabled)' : 'var(--accent-soft)')}
+                                                        onMouseLeave={ev => (ev.currentTarget.style.background = '')}>
+                                                        <td className="num muted">{i + 1}</td>
+                                                        <td className="mono" style={{ fontWeight: 600, textDecoration: isCancelled ? 'line-through' : 'none' }}>{e.folio}</td>
+                                                        <td className="muted">{e.fecha_entrega ? mxFecha(e.fecha_entrega) : '—'}</td>
+                                                        <td>
+                                                            <span style={{
+                                                                display: 'inline-block', padding: '1px 7px', borderRadius: 3, fontSize: 10.5, fontWeight: 600,
+                                                                background: isCancelled ? 'var(--st-rejected-bg)' : 'var(--st-approved-bg)',
+                                                                color: isCancelled ? 'var(--st-rejected-ink)' : 'var(--st-approved-ink)',
+                                                            }}>{e.estatus}</span>
+                                                        </td>
+                                                        <td className="num"><strong style={{ textDecoration: isCancelled ? 'line-through' : 'none' }}>{mxMoney(Number(e.total))}</strong></td>
+                                                        <td style={{ textAlign: 'center', color: isCancelled ? 'var(--ink-3)' : 'var(--accent)', fontSize: 12 }}>Ver ▶</td>
+                                                    </tr>
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
                                 </div>

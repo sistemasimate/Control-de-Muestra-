@@ -18,7 +18,7 @@ class EntregaController extends Controller
         $solicitud->load('lineas');
         $entrega = $solicitud->entregas()->findOrFail($entregaId);
         $entrega->load('lineas');
-        $todasEntregas = $solicitud->entregas()->orderBy('id')->get(['id','folio','fecha_entrega','total']);
+        $todasEntregas = $solicitud->entregas()->orderBy('id')->get(['id','folio','fecha_entrega','total','estatus']);
         return Inertia::render('Entregas/Show', [
             'solicitud'       => $solicitud,
             'entrega'         => $entrega,
@@ -30,13 +30,14 @@ class EntregaController extends Controller
     {
         $solicitud->load('lineas');
 
-        // Calcular cuánto se ha entregado ya por línea
-        $entregadoPorLinea = EntregaDetalle::whereHas('entrega', fn($q) => $q->where('solicitud_id', $solicitud->id))
+        // Solo suma entregas NO canceladas
+        $entregadoPorLinea = EntregaDetalle::whereHas('entrega', fn($q) =>
+            $q->where('solicitud_id', $solicitud->id)->where('estatus', '!=', 'Cancelada')
+        )
             ->selectRaw('solicitud_detalle_id, SUM(cantidad_entregada) as total_entregado')
             ->groupBy('solicitud_detalle_id')
             ->pluck('total_entregado', 'solicitud_detalle_id');
 
-        // Agregar cantidad_pendiente a cada línea
         $solicitud->lineas->each(function ($linea) use ($entregadoPorLinea) {
             $entregado = (float) ($entregadoPorLinea[$linea->id] ?? 0);
             $linea->cantidad_pendiente = max(0, $linea->cantidad - $entregado);
@@ -126,16 +127,18 @@ class EntregaController extends Controller
                 ]);
             }
 
-            // Recalcular totales entregados para decidir estatus
+            // Solo cuenta entregas NO canceladas para decidir el estatus
             $solicitud->load('lineas');
-            $entregadoPorLinea = EntregaDetalle::whereHas('entrega', fn($q) => $q->where('solicitud_id', $solicitud->id))
+            $entregadoPorLinea = EntregaDetalle::whereHas('entrega', fn($q) =>
+                $q->where('solicitud_id', $solicitud->id)->where('estatus', '!=', 'Cancelada')
+            )
                 ->selectRaw('solicitud_detalle_id, SUM(cantidad_entregada) as total_entregado')
                 ->groupBy('solicitud_detalle_id')
                 ->pluck('total_entregado', 'solicitud_detalle_id');
 
-            $todoEntregado = $solicitud->lineas->every(function ($linea) use ($entregadoPorLinea) {
-                return (float) ($entregadoPorLinea[$linea->id] ?? 0) >= (float) $linea->cantidad;
-            });
+            $todoEntregado = $solicitud->lineas->every(fn($linea) =>
+                (float) ($entregadoPorLinea[$linea->id] ?? 0) >= (float) $linea->cantidad
+            );
 
             $solicitud->update(['estatus' => $todoEntregado ? 'Entregada' : 'Parcial']);
             $entregaId = $entrega->id;
@@ -143,6 +146,40 @@ class EntregaController extends Controller
 
         return redirect()->route('solicitudes.entrega.show', [$solicitud->folio, $entregaId])
             ->with('success', 'Entrega registrada correctamente.');
+    }
+
+    public function cancelar(Request $req, Solicitud $solicitud, int $entregaId): RedirectResponse
+    {
+        $entrega = $solicitud->entregas()->findOrFail($entregaId);
+
+        DB::transaction(function () use ($solicitud, $entrega) {
+            $entrega->update(['estatus' => 'Cancelada']);
+
+            $solicitud->load('lineas');
+
+            // Suma solo entregas activas (no canceladas)
+            $entregadoPorLinea = EntregaDetalle::whereHas('entrega', fn($q) =>
+                $q->where('solicitud_id', $solicitud->id)->where('estatus', '!=', 'Cancelada')
+            )
+                ->selectRaw('solicitud_detalle_id, SUM(cantidad_entregada) as total_entregado')
+                ->groupBy('solicitud_detalle_id')
+                ->pluck('total_entregado', 'solicitud_detalle_id');
+
+            // Si no queda ninguna entrega activa → Pendiente
+            if ($entregadoPorLinea->sum() == 0) {
+                $nuevoEstatus = 'Pendiente';
+            } else {
+                $todoEntregado = $solicitud->lineas->every(fn($linea) =>
+                    (float) ($entregadoPorLinea[$linea->id] ?? 0) >= (float) $linea->cantidad
+                );
+                $nuevoEstatus = $todoEntregado ? 'Entregada' : 'Parcial';
+            }
+
+            $solicitud->update(['estatus' => $nuevoEstatus]);
+        });
+
+        return redirect()->route('solicitudes.entrega.show', [$solicitud->folio, $entregaId])
+            ->with('success', 'Entrega cancelada. La solicitud volvió a Pendiente.');
     }
 
     public function update(Request $req, Solicitud $solicitud, int $entregaId): RedirectResponse

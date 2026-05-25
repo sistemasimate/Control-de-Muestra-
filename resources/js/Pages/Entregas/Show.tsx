@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { router, useForm } from '@inertiajs/react';
+import { router, useForm, usePage } from '@inertiajs/react';
 import AppLayout from '@/layouts/AppLayout';
 import Btn from '@/components/Btn';
 import Icon from '@/components/Icon';
@@ -21,6 +21,7 @@ interface EntregaResumen {
     folio: string;
     fecha_entrega: string | null;
     total: number;
+    estatus: string;
 }
 
 interface Props {
@@ -30,6 +31,9 @@ interface Props {
 }
 
 export default function EntregasShow({ solicitud: s, entrega: e, todas_entregas }: Props) {
+    const { props: shared } = usePage<any>();
+    const flash = shared.flash ?? {};
+
     const subtotal = e.subtotal ?? 0;
     const iva = e.iva ?? 0;
     const total = e.total ?? 0;
@@ -38,7 +42,11 @@ export default function EntregasShow({ solicitud: s, entrega: e, todas_entregas 
     const prevEntrega = currentIdx > 0 ? todas_entregas[currentIdx - 1] : null;
     const nextEntrega = currentIdx < todas_entregas.length - 1 ? todas_entregas[currentIdx + 1] : null;
 
+    const isCancelled = e.estatus === 'Cancelada';
+
     const [editing, setEditing] = useState(false);
+    const [showCancelDialog, setShowCancelDialog] = useState(false);
+    const [cancelling, setCancelling] = useState(false);
 
     const form = useForm({
         fecha_entrega:   toDateInput(e.fecha_entrega),
@@ -64,6 +72,14 @@ export default function EntregasShow({ solicitud: s, entrega: e, todas_entregas 
         setEditing(false);
     };
 
+    const handleCancelEntrega = () => {
+        setCancelling(true);
+        router.post(`/solicitudes/${s.folio}/entrega/${e.id}/cancelar`, {}, {
+            onSuccess: () => setShowCancelDialog(false),
+            onFinish:  () => setCancelling(false),
+        });
+    };
+
     return (
         <AppLayout>
             <div className="doc">
@@ -74,13 +90,34 @@ export default function EntregasShow({ solicitud: s, entrega: e, todas_entregas 
                         Entrega de muestra — <span style={{ fontFamily: 'var(--font-mono)' }}>{e.folio}</span>
                         <span className="doc-title-status"> · desde {s.folio}</span>
                     </div>
-                    <span className="pill approved">Entregada</span>
+                    <span className={`pill ${isCancelled ? 'cancelled' : 'approved'}`}>{e.estatus}</span>
                     <div className="doc-win-btns">
                         <button title="Minimizar">−</button>
                         <button title="Maximizar">▢</button>
                     </div>
                 </div>
                 <div className="doc-strip"/>
+
+                {/* Flash */}
+                {(flash.success || flash.error) && (
+                    <div style={{
+                        padding: '8px 16px', fontSize: 12,
+                        background: flash.success ? 'var(--st-approved-bg)' : 'var(--st-rejected-bg)',
+                        borderBottom: '1px solid var(--line-1)',
+                        color: flash.success ? 'var(--st-approved-ink)' : 'var(--st-rejected-ink)',
+                    }}>
+                        <Icon name={flash.success ? 'check' : 'x'} size={12} style={{ verticalAlign: '-1px', marginRight: 6 }}/>
+                        {flash.success ?? flash.error}
+                    </div>
+                )}
+
+                {/* Banner cancelada */}
+                {isCancelled && (
+                    <div style={{ padding: '8px 16px', fontSize: 12, background: 'var(--st-rejected-bg)', borderBottom: '1px solid var(--line-1)', color: 'var(--st-rejected-ink)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Icon name="x-circle" size={13}/>
+                        Esta entrega fue cancelada. Las cantidades volvieron a estar pendientes en la solicitud.
+                    </div>
+                )}
 
                 {/* Toolbar */}
                 <div className="doc-toolbar">
@@ -109,8 +146,8 @@ export default function EntregasShow({ solicitud: s, entrega: e, todas_entregas 
                     </div>
                 </div>
 
-                {/* Header — bloqueado */}
-                <div className="doc-head">
+                {/* Header */}
+                <div className="doc-head" style={{ opacity: isCancelled ? 0.7 : 1 }}>
                     <div className="doc-fields">
                         <Field label="Cód. cliente"       value={s.cliente_codigo ?? ''} mono/>
                         <Field label="Nombre del cliente" value={s.cliente_nombre}/>
@@ -121,7 +158,6 @@ export default function EntregasShow({ solicitud: s, entrega: e, todas_entregas 
                     <div className="doc-fields">
                         <Field label="Folio entrega" value={e.folio} mono/>
                         <Field label="Estatus"       value={e.estatus}/>
-                        {/* Fecha entrega — editable en modo edición */}
                         <div className="field">
                             <label className="field-label">Fecha entrega</label>
                             {editing
@@ -135,7 +171,7 @@ export default function EntregasShow({ solicitud: s, entrega: e, todas_entregas 
                 </div>
 
                 {/* Body */}
-                <div className="doc-body">
+                <div className="doc-body" style={{ opacity: isCancelled ? 0.7 : 1 }}>
                     <div className="doc-grid-wrap" style={{ overflowX: 'auto' }}>
                         <table className="tbl">
                             <thead>
@@ -185,12 +221,12 @@ export default function EntregasShow({ solicitud: s, entrega: e, todas_entregas 
                         </div>
                     )}
 
-                    {/* Datos de envío — editables */}
+                    {/* Datos de envío */}
                     <div style={{ marginTop: 16, borderTop: '1px solid var(--line-1)', paddingTop: 12 }}>
                         <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink-3)', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
                             <Icon name="truck" size={11}/>
                             Datos de envío
-                            {!editing && (
+                            {!editing && !isCancelled && (
                                 <span style={{ fontSize: 10.5, color: 'var(--accent)', fontWeight: 600, cursor: 'pointer', textTransform: 'none', letterSpacing: 0 }}
                                     onClick={() => setEditing(true)}>
                                     ✎ Editar
@@ -286,7 +322,7 @@ export default function EntregasShow({ solicitud: s, entrega: e, todas_entregas 
                 </div>
 
                 {/* Footer */}
-                <div className="doc-foot">
+                <div className="doc-foot" style={{ opacity: isCancelled ? 0.7 : 1 }}>
                     <div className="doc-fields">
                         <div className="field">
                             <label className="field-label">Autorizador</label>
@@ -313,8 +349,13 @@ export default function EntregasShow({ solicitud: s, entrega: e, todas_entregas 
                 {/* Action bar */}
                 <div className="doc-actions">
                     <Btn variant="default" icon="download">PDF</Btn>
+                    {!isCancelled && (
+                        <Btn variant="danger" icon="x" onClick={() => setShowCancelDialog(true)}>
+                            Cancelar entrega
+                        </Btn>
+                    )}
                     <Btn variant="default" onClick={() => router.visit(`/solicitudes?sel=${s.folio}`)}>Cerrar</Btn>
-                    {editing && (
+                    {editing && !isCancelled && (
                         <div className="right">
                             <Btn variant="default" onClick={handleCancel}>Cancelar</Btn>
                             <Btn variant="accent" icon="check" onClick={handleSave} disabled={form.processing}>
@@ -324,6 +365,35 @@ export default function EntregasShow({ solicitud: s, entrega: e, todas_entregas 
                     )}
                 </div>
             </div>
+
+            {/* Diálogo confirmación cancelar entrega */}
+            {showCancelDialog && (
+                <>
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 300 }}
+                        onClick={() => setShowCancelDialog(false)}/>
+                    <div style={{
+                        position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+                        background: 'var(--bg-elev)', border: '1px solid var(--line-2)', borderRadius: 4,
+                        boxShadow: 'var(--shadow-lg)', minWidth: 380, maxWidth: 480, zIndex: 301, padding: 20,
+                    }}>
+                        <div className="row gap-2" style={{ marginBottom: 12 }}>
+                            <Icon name="x-circle" size={16} style={{ color: 'var(--st-rejected-ink)' }}/>
+                            <strong style={{ fontSize: 14 }}>¿Cancelar entrega {e.folio}?</strong>
+                        </div>
+                        <p style={{ fontSize: 13, color: 'var(--ink-2)', margin: '0 0 16px' }}>
+                            Las cantidades entregadas en este documento se reincorporarán como
+                            pendientes y la solicitud <strong>{s.folio}</strong> volverá a
+                            estatus <strong>Pendiente</strong> (o Parcial si hay otras entregas activas).
+                        </p>
+                        <div className="row gap-2" style={{ justifyContent: 'flex-end' }}>
+                            <Btn variant="default" onClick={() => setShowCancelDialog(false)}>No, volver</Btn>
+                            <Btn variant="danger" onClick={handleCancelEntrega} disabled={cancelling}>
+                                {cancelling ? 'Cancelando…' : 'Sí, cancelar entrega'}
+                            </Btn>
+                        </div>
+                    </div>
+                </>
+            )}
         </AppLayout>
     );
 }
