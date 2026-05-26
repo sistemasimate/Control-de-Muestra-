@@ -900,19 +900,19 @@ export default function SolicitudesIndex({ solicitudes, filtros }: Props) {
                     <div className="doc-actions">
                         <Btn variant="default" icon="plus" onClick={enterAdd} disabled={!perms.nueva || !!flash.success || !!s}>Crear</Btn>
                         {s && !editing && <Btn variant="default" icon="download">PDF</Btn>}
-                        {s && !editing && s.estatus !== 'Cancelada' && s.estatus !== 'Entregada' && s.estatus !== 'Cerrada' && (
+                        {s && !editing && s.estatus !== 'Cancelada' && s.estatus !== 'Entrega completa' && s.estatus !== 'Entregada' && s.estatus !== 'Cerrada' && (
                             <Btn variant="danger" icon="x" onClick={() => setShowCancelDialog(true)}>
                                 Cancelar doc.
                             </Btn>
                         )}
                         <div className="right">
-                            {!editing && s && (s.estatus === 'Entregada' || s.estatus === 'Parcial') && s.entregas && s.entregas.length > 0 && (
+                            {!editing && s && (s.estatus === 'Entrega completa' || s.estatus === 'Entrega parcial' || s.estatus === 'Entregada' || s.estatus === 'Parcial') && s.entregas && s.entregas.length > 0 && (
                                 <Btn variant="default" icon="truck"
                                     onClick={() => router.visit(`/solicitudes/${s.folio}/entrega/${s.entregas![s.entregas!.length - 1].id}`)}>
                                     Ver entregas ({s.entregas.length})
                                 </Btn>
                             )}
-                            {!editing && s && s.estatus !== 'Cancelada' && s.estatus !== 'Rechazada' && s.estatus !== 'Entregada' && s.estatus !== 'Cerrada' && (
+                            {!editing && s && s.estatus !== 'Cancelada' && s.estatus !== 'Rechazada' && s.estatus !== 'Entrega completa' && s.estatus !== 'Entregada' && s.estatus !== 'Cerrada' && (
                                 <CopiarADropdown folio={s.folio}/>
                             )}
                             {canEdit && !editing && (

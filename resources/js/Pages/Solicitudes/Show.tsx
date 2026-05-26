@@ -200,7 +200,7 @@ export default function SolicitudesShow({ solicitud: s }: Props) {
                                 <Btn variant="accent" icon="check" onClick={() => setShowApprove(true)}>Aprobar</Btn>
                             </>
                         )}
-                        {s.estatus !== 'Cancelada' && s.estatus !== 'Rechazada' && s.estatus !== 'Entregada' && (
+                        {s.estatus !== 'Cancelada' && s.estatus !== 'Rechazada' && s.estatus !== 'Entrega completa' && s.estatus !== 'Entregada' && (
                             <Btn variant="accent" icon="truck"
                                 onClick={() => router.visit(`/solicitudes/${s.folio}/entrega/nueva`)}>
                                 Crear entrega

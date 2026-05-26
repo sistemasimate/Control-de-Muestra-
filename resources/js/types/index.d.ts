@@ -75,9 +75,9 @@ export interface SolicitudDetalleDB {
 export type EstatusId =
     | 'Pendiente'
     | 'Aprobada'
-    | 'Parcial'
+    | 'Entrega parcial'
+    | 'Entrega completa'
     | 'Rechazada'
-    | 'Entregada'
     | 'Cancelada'
     | 'Devuelta'
     | 'Cerrada';

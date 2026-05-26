@@ -16,7 +16,7 @@ class AutorizacionController extends Controller
             ->get();
 
         $historial = Solicitud::with('autorizaciones')
-            ->whereIn('estatus', ['Aprobada','Rechazada','Entregada','Devuelta'])
+            ->whereIn('estatus', ['Aprobada','Rechazada','Entrega completa','Entrega parcial','Entregada','Devuelta'])
             ->orderByDesc('updated_at')
             ->take(20)->get();
 

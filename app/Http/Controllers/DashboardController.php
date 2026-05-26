@@ -14,7 +14,8 @@ class DashboardController extends Controller
     {
         $solicitudes = Solicitud::with('lineas')->get();
 
-        $entregadas        = $solicitudes->where('estatus', 'Entregada')->count();
+        $entregadas        = $solicitudes->whereIn('estatus', ['Entrega completa', 'Entregada'])->count();
+        $parciales         = $solicitudes->whereIn('estatus', ['Entrega parcial', 'Parcial'])->count();
         $pendientes        = $solicitudes->where('estatus', 'Pendiente')->count();
         $canceladas        = $solicitudes->where('estatus', 'Cancelada')->count();
         $totalSolicitudes  = $solicitudes->count();
@@ -22,17 +23,18 @@ class DashboardController extends Controller
         $conversion        = $entregadas ? round(($convertidas / $entregadas) * 100) : 0;
         $clientesAtendidos = $solicitudes->pluck('cliente_nombre')->filter()->unique()->count();
 
-        $costoTotal   = $solicitudes->whereIn('estatus', ['Entregada', 'Devuelta', 'Aprobada'])
+        $costoTotal   = $solicitudes->whereIn('estatus', ['Entrega completa', 'Entregada', 'Entrega parcial', 'Parcial', 'Devuelta', 'Aprobada'])
             ->sum(fn($s) => (float) $s->total);
         $costoPromedio = $entregadas > 0 ? round($costoTotal / $entregadas, 2) : 0;
 
-        // Entregas por mes — últimos 12 meses (entregadas + pendientes + canceladas)
+        // Entregas por mes — últimos 12 meses
         $meses = collect(range(0, 11))->map(function ($i) {
             $start = now()->startOfMonth()->subMonths(11 - $i);
             $end   = $start->copy()->endOfMonth();
             return [
                 'mes'        => ucfirst($start->locale('es')->isoFormat('MMM YY')),
-                'entregadas' => Solicitud::whereBetween('fecha_solicitud', [$start, $end])->where('estatus', 'Entregada')->count(),
+                'entregadas' => Solicitud::whereBetween('fecha_solicitud', [$start, $end])->whereIn('estatus', ['Entrega completa', 'Entregada'])->count(),
+                'parciales'  => Solicitud::whereBetween('fecha_solicitud', [$start, $end])->whereIn('estatus', ['Entrega parcial', 'Parcial'])->count(),
                 'pendientes' => Solicitud::whereBetween('fecha_solicitud', [$start, $end])->where('estatus', 'Pendiente')->count(),
                 'canceladas' => Solicitud::whereBetween('fecha_solicitud', [$start, $end])->where('estatus', 'Cancelada')->count(),
             ];
@@ -49,7 +51,7 @@ class DashboardController extends Controller
         $porVendedor = $solicitudes->groupBy('vendedor')->map(fn($g, $v) => [
             'nombre'     => $v ?: '(sin asignar)',
             'total'      => $g->count(),
-            'entregadas' => $g->where('estatus', 'Entregada')->count(),
+            'entregadas' => $g->whereIn('estatus', ['Entrega completa', 'Entregada'])->count(),
             'monto'      => round($g->sum(fn($s) => (float) $s->total), 2),
         ])->sortByDesc('total')->take(6)->values();
 
@@ -70,6 +72,7 @@ class DashboardController extends Controller
             'kpis' => [
                 'totalSolicitudes'  => $totalSolicitudes,
                 'entregadas'        => $entregadas,
+                'parciales'         => $parciales,
                 'pendientes'        => $pendientes,
                 'canceladas'        => $canceladas,
                 'costoTotal'        => $costoTotal,

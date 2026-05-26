@@ -382,7 +382,7 @@ export default function EntregasShow({ solicitud: s, entrega: e, todas_entregas 
                         <p style={{ fontSize: 13, color: 'var(--ink-2)', margin: '0 0 16px' }}>
                             Las cantidades entregadas en este documento se reincorporarán como
                             pendientes y la solicitud <strong>{s.folio}</strong> volverá a
-                            estatus <strong>Pendiente</strong> (o Parcial si hay otras entregas activas).
+                            estatus <strong>Pendiente</strong> (o Entrega parcial si hay otras entregas activas).
                         </p>
                         <div className="row gap-2" style={{ justifyContent: 'flex-end' }}>
                             <Btn variant="default" onClick={() => setShowCancelDialog(false)}>No, volver</Btn>

@@ -140,7 +140,7 @@ class EntregaController extends Controller
                 (float) ($entregadoPorLinea[$linea->id] ?? 0) >= (float) $linea->cantidad
             );
 
-            $solicitud->update(['estatus' => $todoEntregado ? 'Entregada' : 'Parcial']);
+            $solicitud->update(['estatus' => $todoEntregado ? 'Entrega completa' : 'Entrega parcial']);
             $entregaId = $entrega->id;
         });
 
@@ -172,7 +172,7 @@ class EntregaController extends Controller
                 $todoEntregado = $solicitud->lineas->every(fn($linea) =>
                     (float) ($entregadoPorLinea[$linea->id] ?? 0) >= (float) $linea->cantidad
                 );
-                $nuevoEstatus = $todoEntregado ? 'Entregada' : 'Parcial';
+                $nuevoEstatus = $todoEntregado ? 'Entrega completa' : 'Entrega parcial';
             }
 
             $solicitud->update(['estatus' => $nuevoEstatus]);
