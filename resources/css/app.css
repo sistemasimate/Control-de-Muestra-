@@ -82,7 +82,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 
 /* Layout shell */
 .app { display: grid; grid-template-columns: var(--sb-w) 1fr; height: 100vh; overflow: hidden; }
-.app-main { display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
+.app-main { display: flex; flex-direction: column; min-width: 0; overflow: hidden; background: var(--bg); }
 .app-content { flex: 1; overflow: auto; padding: 16px 20px 48px; }
 .app-content-narrow { max-width: 1320px; margin: 0 auto; }
 
