@@ -29,7 +29,7 @@ class SolicitudController extends Controller
         if ($req->filled('estatus')) $q->where('estatus', $req->estatus);
         if ($req->filled('vendedor'))$q->where('vendedor', 'like', '%'.$req->vendedor.'%');
 
-        $solicitudes = $q->paginate(20)->withQueryString();
+        $solicitudes = $q->paginate(10)->withQueryString();
 
         return Inertia::render('Solicitudes/Index', [
             'solicitudes' => $solicitudes,
