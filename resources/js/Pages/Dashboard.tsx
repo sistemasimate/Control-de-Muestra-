@@ -58,8 +58,6 @@ export default function Dashboard({ kpis, meses, topClientes, porVendedor, solic
     const move = (e: React.MouseEvent) =>
         tooltip && setTooltip(t => t ? { ...t, x: e.clientX, y: e.clientY } : t);
 
-    const BAR_H = 140;
-    const maxBar = Math.max(...meses.map(b => b.entregadas + b.parciales + b.pendientes + b.canceladas), 1);
     const maxCli = Math.max(...topClientes.map(c => c.n), 1);
     const maxVen = Math.max(...porVendedor.map(v => v.total), 1);
 
@@ -182,48 +180,14 @@ export default function Dashboard({ kpis, meses, topClientes, porVendedor, solic
                 {/* ── Gráfica + Actividad ──────────────────────────────── */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1.7fr 1fr', gap: 10 }}>
 
-                    <Section title="Tendencia mensual de solicitudes" sub="últimos 12 meses"
+                    <Section title="Tendencia de solicitudes"
                         legend={[
                             { color: C.complete, label: 'Entrega completa' },
                             { color: C.partial,  label: 'Entrega parcial' },
                             { color: C.pending,  label: 'Pendientes' },
                             { color: C.cancel,   label: 'Canceladas' },
                         ]}>
-                        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 5, height: BAR_H }}
-                            onMouseLeave={hide}>
-                            {meses.map((b, i) => {
-                                const tot  = b.entregadas + b.parciales + b.pendientes + b.canceladas;
-                                const barH = tot > 0 ? Math.max((tot / maxBar) * BAR_H, 6) : 2;
-                                const hE   = tot > 0 ? (b.entregadas / tot) * barH : 0;
-                                const hP   = tot > 0 ? (b.parciales  / tot) * barH : 0;
-                                const hPe  = tot > 0 ? (b.pendientes / tot) * barH : 0;
-                                const hC   = tot > 0 ? (b.canceladas / tot) * barH : 0;
-                                return (
-                                    <div key={i}
-                                        style={{ flex: 1, display: 'flex', flexDirection: 'column-reverse', gap: 1, cursor: 'default' }}
-                                        onMouseEnter={e => show(e, b.mes, [
-                                            { label: 'Total',            value: tot },
-                                            { label: 'Entrega completa', value: b.entregadas, color: C.complete },
-                                            { label: 'Entrega parcial',  value: b.parciales,  color: C.partial  },
-                                            { label: 'Pendientes',       value: b.pendientes, color: C.pending  },
-                                            { label: 'Canceladas',       value: b.canceladas, color: C.cancel   },
-                                        ])}
-                                        onMouseMove={move}>
-                                        <div style={{ height: hE,  background: C.complete, borderRadius: '2px 2px 0 0', minHeight: b.entregadas > 0 ? 3 : 0 }}/>
-                                        <div style={{ height: hP,  background: C.partial,  borderRadius: '2px 2px 0 0', minHeight: b.parciales  > 0 ? 3 : 0 }}/>
-                                        <div style={{ height: hPe, background: C.pending,  borderRadius: '2px 2px 0 0', minHeight: b.pendientes > 0 ? 3 : 0 }}/>
-                                        <div style={{ height: hC,  background: C.cancel,   borderRadius: '2px 2px 0 0', minHeight: b.canceladas > 0 ? 3 : 0 }}/>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                        <div style={{ display: 'flex', gap: 5, marginTop: 6, borderTop: '1px solid var(--line-0)', paddingTop: 4 }}>
-                            {meses.map((b, i) => (
-                                <div key={i} style={{ flex: 1, textAlign: 'center', fontSize: 9, color: 'var(--ink-4)', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-                                    {b.mes}
-                                </div>
-                            ))}
-                        </div>
+                        <TrendChart meses={meses} C={C} onShow={show} onHide={hide} onMove={move}/>
                     </Section>
 
                     <Section title="Actividad reciente" sub="últimas solicitudes">
@@ -475,6 +439,173 @@ function InfoCard({ icon, color, title, main, meta }: {
                 <div style={{ fontSize: 10.5, color: 'var(--ink-3)', marginTop: 2 }}>{meta}</div>
             </div>
         </div>
+    );
+}
+
+type MesNumKey = 'entregadas' | 'parciales' | 'pendientes' | 'canceladas';
+
+function TrendChart({ meses, C, onShow, onHide, onMove }: {
+    meses: Mes[];
+    C: Record<string, string>;
+    onShow: (e: React.MouseEvent, title: string, rows: { label: string; value: string | number; color?: string }[]) => void;
+    onHide: () => void;
+    onMove: (e: React.MouseEvent) => void;
+}) {
+    const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+
+    // Auto-range: trim leading empty months, keep at least last 3
+    const firstWithData = meses.findIndex(m => m.entregadas + m.parciales + m.pendientes + m.canceladas > 0);
+    const startIdx = firstWithData <= 0
+        ? Math.max(0, meses.length - 4)
+        : Math.max(0, firstWithData - 1);
+    const data = meses.slice(startIdx);
+    const n = data.length;
+
+    const VW = 480, VH = 170;
+    const PAD = { t: 12, r: 12, b: 28, l: 30 };
+    const W = VW - PAD.l - PAD.r;
+    const H = VH - PAD.t - PAD.b;
+
+    const maxVal = Math.max(...data.map(m => m.entregadas + m.parciales + m.pendientes + m.canceladas), 1);
+
+    const xOf = (i: number) => n <= 1 ? PAD.l + W / 2 : PAD.l + (i / (n - 1)) * W;
+    const yOf = (v: number) => PAD.t + H - (v / maxVal) * H;
+
+    const makeLine = (vals: number[]) => {
+        const pts = vals.map<[number, number]>((v, i) => [xOf(i), yOf(v)]);
+        if (pts.length === 0) return '';
+        if (pts.length === 1) return `M ${pts[0][0]} ${pts[0][1]}`;
+        let d = `M ${pts[0][0]} ${pts[0][1]}`;
+        for (let i = 1; i < pts.length; i++) {
+            const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
+            const cx = (x0 + x1) / 2;
+            d += ` C ${cx} ${y0} ${cx} ${y1} ${x1} ${y1}`;
+        }
+        return d;
+    };
+
+    const makeArea = (vals: number[]) => {
+        const line = makeLine(vals);
+        if (!line) return '';
+        const pts = vals.map<[number, number]>((v, i) => [xOf(i), yOf(v)]);
+        const bot = PAD.t + H + 1;
+        return `${line} L ${pts[pts.length - 1][0]} ${bot} L ${pts[0][0]} ${bot} Z`;
+    };
+
+    const series: { key: MesNumKey; label: string; color: string }[] = [
+        { key: 'entregadas', label: 'Entrega completa', color: C.complete },
+        { key: 'parciales',  label: 'Entrega parcial',  color: C.partial  },
+        { key: 'pendientes', label: 'Pendientes',        color: C.pending  },
+        { key: 'canceladas', label: 'Canceladas',        color: C.cancel   },
+    ];
+
+    const yTicks = maxVal <= 2
+        ? [0, maxVal]
+        : [0, Math.round(maxVal / 2), maxVal];
+
+    const handleMove = (e: React.MouseEvent<SVGSVGElement>) => {
+        onMove(e);
+        const rect = e.currentTarget.getBoundingClientRect();
+        const svgX = ((e.clientX - rect.left) / rect.width) * VW - PAD.l;
+        const step = n > 1 ? W / (n - 1) : W;
+        const idx = Math.max(0, Math.min(n - 1, Math.round(svgX / step)));
+        setHoverIdx(idx);
+        const m = data[idx];
+        if (!m) return;
+        const tot = m.entregadas + m.parciales + m.pendientes + m.canceladas;
+        onShow(e, m.mes, [
+            { label: 'Total',            value: tot },
+            { label: 'Entrega completa', value: m.entregadas, color: C.complete },
+            { label: 'Entrega parcial',  value: m.parciales,  color: C.partial  },
+            { label: 'Pendientes',       value: m.pendientes, color: C.pending  },
+            { label: 'Canceladas',       value: m.canceladas, color: C.cancel   },
+        ]);
+    };
+
+    return (
+        <svg
+            viewBox={`0 0 ${VW} ${VH}`}
+            style={{ width: '100%', height: 'auto', display: 'block', cursor: 'crosshair' }}
+            onMouseMove={handleMove}
+            onMouseLeave={() => { onHide(); setHoverIdx(null); }}
+        >
+            <defs>
+                {series.map(s => (
+                    <linearGradient key={s.key} id={`g-${s.key}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%"   stopColor={s.color} stopOpacity="0.22"/>
+                        <stop offset="100%" stopColor={s.color} stopOpacity="0.01"/>
+                    </linearGradient>
+                ))}
+                <linearGradient id="g-base" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%"   stopColor="#94a3b8" stopOpacity="0.07"/>
+                    <stop offset="100%" stopColor="#94a3b8" stopOpacity="0"/>
+                </linearGradient>
+            </defs>
+
+            {/* Y-axis grid */}
+            {yTicks.map(t => (
+                <g key={t}>
+                    <line x1={PAD.l} y1={yOf(t)} x2={PAD.l + W} y2={yOf(t)}
+                        stroke="var(--line-1)" strokeWidth={t === 0 ? 1 : 0.5}
+                        strokeDasharray={t === 0 ? undefined : '4 4'}/>
+                    <text x={PAD.l - 5} y={yOf(t)} textAnchor="end" dominantBaseline="middle"
+                        fill="var(--ink-4)" fontSize={9}>{t}</text>
+                </g>
+            ))}
+
+            {/* Areas */}
+            {series.map(s => {
+                const vals = data.map(m => m[s.key]);
+                if (vals.every(v => v === 0)) return null;
+                return <path key={`a-${s.key}`} d={makeArea(vals)} fill={`url(#g-${s.key})`}/>;
+            })}
+
+            {/* Lines */}
+            {series.map(s => {
+                const vals = data.map(m => m[s.key]);
+                if (vals.every(v => v === 0)) return null;
+                return (
+                    <path key={`l-${s.key}`} d={makeLine(vals)}
+                        fill="none" stroke={s.color} strokeWidth={2}
+                        strokeLinejoin="round" strokeLinecap="round"/>
+                );
+            })}
+
+            {/* Dots on data points */}
+            {series.map(s =>
+                data.map((m, i) => {
+                    const v = m[s.key];
+                    if (v === 0) return null;
+                    const isHov = hoverIdx === i;
+                    return (
+                        <circle key={`d-${s.key}-${i}`}
+                            cx={xOf(i)} cy={yOf(v)}
+                            r={isHov ? 4 : 2.5}
+                            fill={s.color} stroke="white" strokeWidth={1.5}
+                            style={{ transition: 'r 0.1s' }}/>
+                    );
+                })
+            )}
+
+            {/* Hover vertical line */}
+            {hoverIdx !== null && (
+                <line x1={xOf(hoverIdx)} y1={PAD.t} x2={xOf(hoverIdx)} y2={PAD.t + H}
+                    stroke="var(--ink-3)" strokeWidth={1} strokeDasharray="3 3"
+                    pointerEvents="none"/>
+            )}
+
+            {/* X-axis labels */}
+            {data.map((m, i) => {
+                const skip = n > 8 && i % 2 !== 0;
+                if (skip) return null;
+                return (
+                    <text key={i} x={xOf(i)} y={VH - 4} textAnchor="middle"
+                        fill="var(--ink-4)" fontSize={9}>
+                        {m.mes}
+                    </text>
+                );
+            })}
+        </svg>
     );
 }
 
