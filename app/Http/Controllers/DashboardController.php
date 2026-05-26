@@ -22,19 +22,17 @@ class DashboardController extends Controller
         $convertidas       = $solicitudes->whereNotNull('conversion_ov_sap')->count();
         $clientesAtendidos = $solicitudes->pluck('cliente_nombre')->filter()->unique()->count();
 
-        $costoTotal    = $solicitudes->whereIn('estatus', ['Entrega completa', 'Entregada', 'Entrega parcial', 'Parcial', 'Devuelta', 'Aprobada'])
+        $costoTotal = $solicitudes->whereIn('estatus', ['Entrega completa', 'Entregada', 'Entrega parcial', 'Parcial', 'Devuelta', 'Aprobada'])
             ->sum(fn($s) => (float) $s->total);
-        $costoPromedio = $entregadas > 0 ? round($costoTotal / $entregadas, 2) : 0;
-        $cumplimiento  = $totalSolicitudes > 0 ? (int) round(($entregadas / $totalSolicitudes) * 100) : 0;
-        $conversion    = $entregadas > 0 ? round(($convertidas / $entregadas) * 100) : 0;
+        $conversion = $entregadas > 0 ? round(($convertidas / $entregadas) * 100) : 0;
 
-        // Tiempo promedio de entrega (días entre solicitud y entrega)
-        $tiempoPromedio = (float) (DB::table('sic_muestras_entregas as e')
-            ->join('sic_muestras_solicitudes as s', 'e.solicitud_id', '=', 's.id')
-            ->where('e.estatus', 'Entregada')
-            ->whereNotNull('e.fecha_entrega')
-            ->selectRaw('COALESCE(ROUND(AVG(DATEDIFF(e.fecha_entrega, s.fecha_solicitud)), 1), 0) as avg_dias')
-            ->value('avg_dias') ?? 0);
+        // Kilos entregados
+        $kilosEntregados = (float) (DB::table('sic_muestras_entregas_detalle as ed')
+            ->join('sic_muestras_solicitudes_detalle as sd', 'sd.id', '=', 'ed.solicitud_detalle_id')
+            ->join('sic_muestras_entregas as e', 'e.id', '=', 'ed.entrega_id')
+            ->where('e.estatus', '!=', 'Cancelada')
+            ->whereRaw("UPPER(sd.unidad) = 'KG'")
+            ->sum('ed.cantidad_entregada') ?? 0);
 
         // Producto más solicitado
         $topProductoRow = DB::table('sic_muestras_solicitudes_detalle')
@@ -107,10 +105,8 @@ class DashboardController extends Controller
                 'pendientes'        => $pendientes,
                 'canceladas'        => $canceladas,
                 'costoTotal'        => $costoTotal,
-                'costoPromedio'     => $costoPromedio,
                 'clientesAtendidos' => $clientesAtendidos,
-                'cumplimiento'      => $cumplimiento,
-                'tiempoPromedio'    => $tiempoPromedio,
+                'kilosEntregados'   => $kilosEntregados,
                 'conversion'        => $conversion,
                 'convertidas'       => $convertidas,
             ],

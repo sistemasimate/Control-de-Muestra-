@@ -37,8 +37,7 @@ interface Props {
     kpis: {
         totalSolicitudes: number; entregadas: number; parciales: number;
         pendientes: number; canceladas: number; costoTotal: number;
-        costoPromedio: number; clientesAtendidos: number;
-        cumplimiento: number; tiempoPromedio: number;
+        clientesAtendidos: number; kilosEntregados: number;
         conversion: number; convertidas: number;
     };
     meses: Mes[];
@@ -142,36 +141,23 @@ export default function Dashboard({ kpis, meses, topClientes, porVendedor, solic
                 </div>
 
                 {/* ── KPIs fila 2 ─────────────────────────────────────── */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10 }}>
-                    <KpiCard icon="percent"      label="% Cumplimiento"
-                        color={kpis.cumplimiento >= 80 ? C.complete : kpis.cumplimiento >= 50 ? C.partial : C.cancel}
-                        value={`${kpis.cumplimiento}%`} sub={`${kpis.entregadas} de ${kpis.totalSolicitudes}`}
-                        onHover={e => show(e, '% Cumplimiento', [
-                            { label: 'Entregadas completas', value: kpis.entregadas },
-                            { label: 'Total solicitudes',    value: kpis.totalSolicitudes },
-                            { label: 'Tasa',                 value: `${kpis.cumplimiento}%` },
-                        ])} onLeave={hide}/>
-                    <KpiCard icon="dollar-sign"  color={C.money}     label="Costo total"
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                    <KpiCard icon="dollar-sign" color={C.money} label="Total"
                         value={MXN(kpis.costoTotal)} wide
-                        onHover={e => show(e, 'Costo total acumulado', [
-                            { label: 'Total muestras', value: MXN(kpis.costoTotal) },
+                        onHover={e => show(e, 'Total acumulado', [
+                            { label: 'Total muestras',      value: MXN(kpis.costoTotal) },
                             { label: 'Solicitudes activas', value: kpis.entregadas + kpis.parciales },
                         ])} onLeave={hide}/>
-                    <KpiCard icon="bar-chart-2"  color={C.money}     label="Costo promedio"
-                        value={MXN(kpis.costoPromedio)} wide sub="por solicitud entregada"
-                        onHover={e => show(e, 'Costo promedio', [
-                            { label: 'Promedio',  value: MXN(kpis.costoPromedio) },
-                            { label: 'Base',      value: `${kpis.entregadas} entregas` },
-                        ])} onLeave={hide}/>
-                    <KpiCard icon="calendar"     color={C.vendor}    label="Tiempo promedio"
-                        value={`${kpis.tiempoPromedio} días`} sub="solicitud → entrega"
-                        onHover={e => show(e, 'Tiempo promedio de entrega', [
-                            { label: 'Días promedio', value: kpis.tiempoPromedio },
-                        ])} onLeave={hide}/>
-                    <KpiCard icon="users"        color={C.vendor}    label="Clientes atendidos"
+                    <KpiCard icon="users" color={C.vendor} label="Clientes atendidos"
                         value={kpis.clientesAtendidos}
                         onHover={e => show(e, 'Clientes atendidos', [
                             { label: 'Clientes únicos', value: kpis.clientesAtendidos },
+                        ])} onLeave={hide}/>
+                    <KpiCard icon="package" color={C.pending} label="Kilos entregados"
+                        value={kpis.kilosEntregados.toLocaleString('es-MX', { maximumFractionDigits: 2 })} wide
+                        sub="unidad KG · entregas no canceladas"
+                        onHover={e => show(e, 'Kilos entregados', [
+                            { label: 'Total KG', value: kpis.kilosEntregados },
                         ])} onLeave={hide}/>
                 </div>
 
