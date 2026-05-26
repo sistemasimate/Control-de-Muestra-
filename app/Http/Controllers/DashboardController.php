@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Solicitud;
-use App\Models\Articulo;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,14 +20,45 @@ class DashboardController extends Controller
         $canceladas        = $solicitudes->where('estatus', 'Cancelada')->count();
         $totalSolicitudes  = $solicitudes->count();
         $convertidas       = $solicitudes->whereNotNull('conversion_ov_sap')->count();
-        $conversion        = $entregadas ? round(($convertidas / $entregadas) * 100) : 0;
         $clientesAtendidos = $solicitudes->pluck('cliente_nombre')->filter()->unique()->count();
 
-        $costoTotal   = $solicitudes->whereIn('estatus', ['Entrega completa', 'Entregada', 'Entrega parcial', 'Parcial', 'Devuelta', 'Aprobada'])
+        $costoTotal    = $solicitudes->whereIn('estatus', ['Entrega completa', 'Entregada', 'Entrega parcial', 'Parcial', 'Devuelta', 'Aprobada'])
             ->sum(fn($s) => (float) $s->total);
         $costoPromedio = $entregadas > 0 ? round($costoTotal / $entregadas, 2) : 0;
+        $cumplimiento  = $totalSolicitudes > 0 ? (int) round(($entregadas / $totalSolicitudes) * 100) : 0;
+        $conversion    = $entregadas > 0 ? round(($convertidas / $entregadas) * 100) : 0;
 
-        // Entregas por mes — últimos 12 meses
+        // Tiempo promedio de entrega (días entre solicitud y entrega)
+        $tiempoPromedio = (float) (DB::table('sic_muestras_entregas as e')
+            ->join('sic_muestras_solicitudes as s', 'e.solicitud_id', '=', 's.id')
+            ->where('e.estatus', 'Entregada')
+            ->whereNotNull('e.fecha_entrega')
+            ->selectRaw('COALESCE(ROUND(AVG(DATEDIFF(e.fecha_entrega, s.fecha_solicitud)), 1), 0) as avg_dias')
+            ->value('avg_dias') ?? 0);
+
+        // Producto más solicitado
+        $topProductoRow = DB::table('sic_muestras_solicitudes_detalle')
+            ->whereNotNull('descripcion')->where('descripcion', '!=', '')
+            ->selectRaw('descripcion, ROUND(SUM(cantidad), 2) as total_qty, COUNT(*) as veces')
+            ->groupBy('descripcion')
+            ->orderByDesc('total_qty')
+            ->first();
+        $topProducto = $topProductoRow
+            ? ['descripcion' => $topProductoRow->descripcion, 'qty' => (float) $topProductoRow->total_qty, 'veces' => (int) $topProductoRow->veces]
+            : null;
+
+        // Almacén con mayor movimiento
+        $topAlmacenRow = DB::table('sic_muestras_solicitudes_detalle')
+            ->whereNotNull('almacen_codigo')->where('almacen_codigo', '!=', '')
+            ->selectRaw('almacen_codigo, COUNT(*) as total')
+            ->groupBy('almacen_codigo')
+            ->orderByDesc('total')
+            ->first();
+        $topAlmacen = $topAlmacenRow
+            ? ['codigo' => $topAlmacenRow->almacen_codigo, 'total' => (int) $topAlmacenRow->total]
+            : null;
+
+        // Tendencia mensual — últimos 12 meses
         $meses = collect(range(0, 11))->map(function ($i) {
             $start = now()->startOfMonth()->subMonths(11 - $i);
             $end   = $start->copy()->endOfMonth();
@@ -59,7 +90,7 @@ class DashboardController extends Controller
         $solicitudesPendientes = $solicitudes->where('estatus', 'Pendiente')
             ->sortByDesc('fecha_solicitud')->take(5)->values();
 
-        // Actividad reciente (últimas 6 solicitudes)
+        // Actividad reciente
         $recientes = $solicitudes->sortByDesc('fecha_solicitud')->take(6)->map(fn($s) => [
             'folio'   => $s->folio,
             'cliente' => $s->cliente_nombre,
@@ -78,6 +109,8 @@ class DashboardController extends Controller
                 'costoTotal'        => $costoTotal,
                 'costoPromedio'     => $costoPromedio,
                 'clientesAtendidos' => $clientesAtendidos,
+                'cumplimiento'      => $cumplimiento,
+                'tiempoPromedio'    => $tiempoPromedio,
                 'conversion'        => $conversion,
                 'convertidas'       => $convertidas,
             ],
@@ -86,6 +119,8 @@ class DashboardController extends Controller
             'porVendedor'           => $porVendedor,
             'solicitudesPendientes' => $solicitudesPendientes,
             'recientes'             => $recientes,
+            'topProducto'           => $topProducto,
+            'topAlmacen'            => $topAlmacen,
         ]);
     }
 }
