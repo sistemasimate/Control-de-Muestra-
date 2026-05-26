@@ -29,7 +29,7 @@ export default function EntregasCreate({ solicitud: s, folio_entrega }: Props) {
     const form = useForm({
         autorizador:     s.autorizador ?? '',
         fecha_entrega:   todayISO(),
-        comentarios:     '',
+        comentarios:     s.comentarios ?? '',
         destinatario:    '',
         direccion_envio: '',
         ciudad:          '',

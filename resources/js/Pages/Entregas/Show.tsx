@@ -213,13 +213,12 @@ export default function EntregasShow({ solicitud: s, entrega: e, todas_entregas 
                         </table>
                     </div>
 
-                    {e.comentarios && (
-                        <div className="mt-3 field">
-                            <label className="field-label">Comentarios</label>
-                            <textarea className="textarea" defaultValue={e.comentarios} readOnly
-                                style={{ minHeight: 52, background: 'var(--field-disabled)', cursor: 'default' }}/>
-                        </div>
-                    )}
+                    <div className="mt-3 field">
+                        <label className="field-label">Comentarios</label>
+                        <textarea className="textarea" defaultValue={e.comentarios ?? ''} readOnly
+                            placeholder="Sin comentarios"
+                            style={{ minHeight: 52, background: 'var(--field-disabled)', cursor: 'default' }}/>
+                    </div>
 
                     {/* Datos de envío */}
                     <div style={{ marginTop: 16, borderTop: '1px solid var(--line-1)', paddingTop: 12 }}>
