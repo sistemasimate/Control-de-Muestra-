@@ -62,10 +62,7 @@ export default function SolicitudesIndex({ solicitudes, filtros }: Props) {
     const [hasSelection, setHasSelection] = useState(false);
     const [showCancelDialog, setShowCancelDialog] = useState(false);
     const [showExportPanel, setShowExportPanel] = useState(false);
-    const [exportFilters, setExportFilters] = useState({
-        fecha_ini: '', fecha_fin: '', cliente: '', estatus: '',
-        vendedor: '', autorizador: '', producto: '', almacen: '', tipo_envio: '',
-    });
+    const [exportFilters, setExportFilters] = useState({ fecha_ini: '', fecha_fin: '' });
     const [editData, setEditData] = useState<EditState | null>(null);
     const [editProcessing, setEditProcessing] = useState(false);
     const editing = editData !== null;
@@ -1071,8 +1068,8 @@ function CopiarADropdown({ folio }: { folio: string }) {
 }
 
 interface ExportFilters {
-    fecha_ini: string; fecha_fin: string; cliente: string; estatus: string;
-    vendedor: string; autorizador: string; producto: string; almacen: string; tipo_envio: string;
+    fecha_ini: string;
+    fecha_fin: string;
 }
 
 function ExportPanel({ filters, onChange, onExport, onClose }: {
@@ -1081,16 +1078,13 @@ function ExportPanel({ filters, onChange, onExport, onClose }: {
     onExport: () => void;
     onClose: () => void;
 }) {
-    const set = (k: keyof ExportFilters, v: string) => onChange({ ...filters, [k]: v });
-    const anyFilter = Object.values(filters).some(Boolean);
-
     return (
         <>
             <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 300 }} onClick={onClose}/>
             <div style={{
                 position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
                 background: 'var(--bg-elev)', border: '1px solid var(--line-2)',
-                borderRadius: 4, boxShadow: 'var(--shadow-lg)', width: 540, maxWidth: '95vw', zIndex: 301, padding: 20,
+                borderRadius: 4, boxShadow: 'var(--shadow-lg)', width: 380, maxWidth: '95vw', zIndex: 301, padding: 20,
             }}>
                 <div className="row gap-2" style={{ marginBottom: 16 }}>
                     <Icon name="download" size={16} style={{ color: 'var(--accent)' }}/>
@@ -1099,87 +1093,24 @@ function ExportPanel({ filters, onChange, onExport, onClose }: {
                     <button onClick={onClose} style={{ fontSize: 16, color: 'var(--ink-3)', lineHeight: 1 }}>×</button>
                 </div>
 
-                <p style={{ fontSize: 12, color: 'var(--ink-3)', margin: '0 0 14px' }}>
-                    Aplica filtros opcionales. Sin filtros se exporta el historial completo.
-                </p>
-
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 14px' }}>
                     <div className="field">
                         <label className="field-label">Fecha solicitud — desde</label>
                         <input className="input" type="date" value={filters.fecha_ini}
-                            onChange={e => set('fecha_ini', e.target.value)}/>
+                            onChange={e => onChange({ ...filters, fecha_ini: e.target.value })}/>
                     </div>
                     <div className="field">
                         <label className="field-label">Fecha solicitud — hasta</label>
                         <input className="input" type="date" value={filters.fecha_fin}
-                            onChange={e => set('fecha_fin', e.target.value)}/>
-                    </div>
-                    <div className="field">
-                        <label className="field-label">Cliente (contiene)</label>
-                        <input className="input" value={filters.cliente} placeholder="Nombre del cliente…"
-                            onChange={e => set('cliente', e.target.value)}/>
-                    </div>
-                    <div className="field">
-                        <label className="field-label">Estatus</label>
-                        <select className="input" value={filters.estatus} onChange={e => set('estatus', e.target.value)}>
-                            <option value="">Cualquiera</option>
-                            <option>Pendiente</option>
-                            <option>Aprobada</option>
-                            <option>Entrega completa</option>
-                            <option>Entrega parcial</option>
-                            <option>Rechazada</option>
-                            <option>Cancelada</option>
-                            <option>Devuelta</option>
-                            <option>Cerrada</option>
-                        </select>
-                    </div>
-                    <div className="field">
-                        <label className="field-label">Vendedor (contiene)</label>
-                        <input className="input" value={filters.vendedor} placeholder="Nombre del vendedor…"
-                            onChange={e => set('vendedor', e.target.value)}/>
-                    </div>
-                    <div className="field">
-                        <label className="field-label">Autorizador (contiene)</label>
-                        <input className="input" value={filters.autorizador} placeholder="Nombre del autorizador…"
-                            onChange={e => set('autorizador', e.target.value)}/>
-                    </div>
-                    <div className="field">
-                        <label className="field-label">Producto / Descripción (contiene)</label>
-                        <input className="input" value={filters.producto} placeholder="Artículo, descripción…"
-                            onChange={e => set('producto', e.target.value)}/>
-                    </div>
-                    <div className="field">
-                        <label className="field-label">Almacén (contiene)</label>
-                        <input className="input" value={filters.almacen} placeholder="Código de almacén…"
-                            onChange={e => set('almacen', e.target.value)}/>
-                    </div>
-                    <div className="field" style={{ gridColumn: 'span 2' }}>
-                        <label className="field-label">Tipo de envío</label>
-                        <select className="input" value={filters.tipo_envio} onChange={e => set('tipo_envio', e.target.value)}
-                            style={{ maxWidth: 220 }}>
-                            <option value="">Cualquiera</option>
-                            <option value="Mensajería">Mensajería</option>
-                            <option value="Paquetería">Paquetería</option>
-                            <option value="Recolección">Recolección en planta</option>
-                            <option value="Entrega directa">Entrega directa</option>
-                        </select>
+                            onChange={e => onChange({ ...filters, fecha_fin: e.target.value })}/>
                     </div>
                 </div>
 
-                {anyFilter && (
-                    <div style={{ marginTop: 10, fontSize: 11.5, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Icon name="filter" size={11}/>
-                        Filtros activos: {Object.entries(filters).filter(([,v]) => v).map(([k]) => k).join(', ')}
-                    </div>
-                )}
+                <p style={{ marginTop: 10, fontSize: 11.5, color: 'var(--ink-3)' }}>
+                    Sin fechas se exporta el historial completo.
+                </p>
 
-                <div className="row gap-2" style={{ marginTop: 18, justifyContent: 'flex-end' }}>
-                    {anyFilter && (
-                        <Btn variant="ghost" size="sm"
-                            onClick={() => onChange({ fecha_ini:'',fecha_fin:'',cliente:'',estatus:'',vendedor:'',autorizador:'',producto:'',almacen:'',tipo_envio:'' })}>
-                            Limpiar filtros
-                        </Btn>
-                    )}
+                <div className="row gap-2" style={{ marginTop: 16, justifyContent: 'flex-end' }}>
                     <Btn variant="default" onClick={onClose}>Cancelar</Btn>
                     <Btn variant="accent" icon="download" onClick={onExport}>
                         Descargar Excel
