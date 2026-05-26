@@ -27,7 +27,7 @@ export default function EntregasCreate({ solicitud: s, folio_entrega }: Props) {
     }));
 
     const form = useForm({
-        autorizador:     '',
+        autorizador:     s.autorizador ?? '',
         fecha_entrega:   todayISO(),
         comentarios:     '',
         destinatario:    '',
@@ -129,11 +129,9 @@ export default function EntregasCreate({ solicitud: s, folio_entrega }: Props) {
                             <tbody>
                                 {s.lineas.map((l, i) => {
                                     const pendiente = l.cantidad_pendiente ?? l.cantidad;
-                                    const sinPendiente = pendiente <= 0;
                                     const qEnt = form.data.lineas[i]?.cantidad_entregada ?? 0;
-                                    const excede = qEnt > pendiente;
                                     return (
-                                        <tr key={l.id} style={{ opacity: sinPendiente ? 0.55 : 1 }}>
+                                        <tr key={l.id}>
                                             <td className="num">{i + 1}</td>
                                             <td className="mono" style={{ background: 'var(--field-disabled)', color: 'var(--ink-2)' }}>
                                                 {l.codigo_articulo ?? '—'}
@@ -142,35 +140,20 @@ export default function EntregasCreate({ solicitud: s, folio_entrega }: Props) {
                                                 {l.descripcion ?? l.articulo?.descripcion}
                                             </td>
                                             <td className="num" style={{ padding: 0 }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 2, padding: '0 6px' }}>
-                                                    <input
-                                                        type="number"
-                                                        value={qEnt}
-                                                        min={0}
-                                                        max={pendiente}
-                                                        disabled={sinPendiente}
-                                                        onChange={e => {
-                                                            const val = Number(e.target.value) || 0;
-                                                            updateLinea(i, 'cantidad_entregada', Math.min(val, pendiente));
-                                                        }}
-                                                        style={{
-                                                            width: '100%', height: 22, textAlign: 'right',
-                                                            border: excede ? '1px solid var(--st-rejected)' : '0',
-                                                            fontSize: 11.5, background: 'transparent', fontWeight: 700,
-                                                            outline: 'none',
-                                                        }}
-                                                    />
-                                                    {sinPendiente && (
-                                                        <span title="Línea completa" style={{ fontSize: 11, color: 'var(--st-approved-ink)' }}>🔒</span>
-                                                    )}
-                                                </div>
+                                                <input
+                                                    type="number"
+                                                    value={qEnt}
+                                                    min={0}
+                                                    onChange={e => updateLinea(i, 'cantidad_entregada', Number(e.target.value) || 0)}
+                                                    style={{
+                                                        width: '100%', height: 22, textAlign: 'right',
+                                                        border: 0, fontSize: 11.5, background: 'transparent',
+                                                        fontWeight: 700, outline: 'none', padding: '0 6px',
+                                                    }}
+                                                />
                                             </td>
-                                            <td className="num" style={{
-                                                background: sinPendiente ? 'var(--st-approved-bg)' : 'var(--field-disabled)',
-                                                color: sinPendiente ? 'var(--st-approved-ink)' : 'var(--ink-2)',
-                                                fontWeight: 600,
-                                            }}>
-                                                {sinPendiente ? '✓ Completo' : pendiente}
+                                            <td className="num" style={{ background: 'var(--field-disabled)', color: 'var(--ink-2)', fontWeight: 600 }}>
+                                                {pendiente}
                                             </td>
                                             <td style={{ background: 'var(--field-disabled)', color: 'var(--ink-2)' }}>{l.unidad}</td>
                                             <td className="num" style={{ background: 'var(--field-disabled)', color: 'var(--ink-2)' }}>{mxMoney(l.costo_unitario)}</td>
@@ -178,7 +161,6 @@ export default function EntregasCreate({ solicitud: s, folio_entrega }: Props) {
                                             <td style={{ padding: 0 }}>
                                                 <input
                                                     value={form.data.lineas[i]?.almacen_codigo ?? ''}
-                                                    disabled={sinPendiente}
                                                     onChange={e => updateLinea(i, 'almacen_codigo', e.target.value)}
                                                     placeholder={l.almacen_codigo ?? '—'}
                                                     style={{ width: '100%', height: 22, border: 0, background: 'transparent', fontSize: 11.5, padding: '0 6px' }}
@@ -188,7 +170,6 @@ export default function EntregasCreate({ solicitud: s, folio_entrega }: Props) {
                                                 <input
                                                     className="mono"
                                                     value={form.data.lineas[i]?.lote ?? ''}
-                                                    disabled={sinPendiente}
                                                     onChange={e => updateLinea(i, 'lote', e.target.value)}
                                                     placeholder={l.lote ?? '—'}
                                                     style={{ width: '100%', height: 22, border: 0, background: 'transparent', fontSize: 11.5, padding: '0 6px' }}
@@ -197,7 +178,6 @@ export default function EntregasCreate({ solicitud: s, folio_entrega }: Props) {
                                             <td style={{ padding: 0 }}>
                                                 <input
                                                     value={form.data.lineas[i]?.proveedor ?? ''}
-                                                    disabled={sinPendiente}
                                                     onChange={e => updateLinea(i, 'proveedor', e.target.value)}
                                                     placeholder={l.proveedor ?? '—'}
                                                     style={{ width: '100%', height: 22, border: 0, background: 'transparent', fontSize: 11.5, padding: '0 6px' }}
