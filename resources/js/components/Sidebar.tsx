@@ -37,26 +37,28 @@ export default function Sidebar({ pendientes = 0, pendientesAuth = 0 }: SidebarP
         </div>
       </div>
 
-      {NAV.map(group => (
-        <div className="sb-section" key={group.section}>
-          <div className="sb-section-title">{group.section}</div>
-          {group.items.map(item => {
-            if (item.id === 'autorizaciones' && !perms.autorizaciones) return null;
-            const badge = item.badgeKey ? counts[item.badgeKey] : 0;
-            return (
-              <div
-                key={item.id}
-                className={`sb-link ${active(item.id) ? 'active' : ''}`}
-                onClick={() => go(item.id)}
-              >
-                <Icon name={item.icon} size={14} className="sb-link-icon"/>
-                <span>{item.label}</span>
-                {badge > 0 && <span className="sb-link-badge">{badge}</span>}
-              </div>
-            );
-          })}
-        </div>
-      ))}
+      <div className="sb-nav">
+        {NAV.map(group => (
+          <div className="sb-section" key={group.section}>
+            <div className="sb-section-title">{group.section}</div>
+            {group.items.map(item => {
+              if (item.id === 'autorizaciones' && !perms.autorizaciones) return null;
+              const badge = item.badgeKey ? counts[item.badgeKey] : 0;
+              return (
+                <div
+                  key={item.id}
+                  className={`sb-link ${active(item.id) ? 'active' : ''}`}
+                  onClick={() => go(item.id)}
+                >
+                  <Icon name={item.icon} size={14} className="sb-link-icon"/>
+                  <span>{item.label}</span>
+                  {badge > 0 && <span className="sb-link-badge">{badge}</span>}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
 
       <div className="sb-user" style={{ cursor: 'pointer' }} onClick={() => setShowRolPicker(v => !v)} title="Cambiar rol (demo)">
         <div className="sb-user-avatar">{rol.initials}</div>
