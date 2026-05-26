@@ -1078,43 +1078,46 @@ function ExportPanel({ filters, onChange, onExport, onClose }: {
     onExport: () => void;
     onClose: () => void;
 }) {
+    const lbl: React.CSSProperties = { display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 4 };
+
     return (
         <>
             <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 300 }} onClick={onClose}/>
             <div style={{
                 position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
                 background: 'var(--bg-elev)', border: '1px solid var(--line-2)',
-                borderRadius: 4, boxShadow: 'var(--shadow-lg)', width: 380, maxWidth: '95vw', zIndex: 301, padding: 20,
+                borderRadius: 4, boxShadow: 'var(--shadow-lg)', width: 360, maxWidth: '95vw', zIndex: 301, padding: 20,
             }}>
-                <div className="row gap-2" style={{ marginBottom: 16 }}>
-                    <Icon name="download" size={16} style={{ color: 'var(--accent)' }}/>
-                    <strong style={{ fontSize: 14 }}>Exportar a Excel</strong>
-                    <div className="fb-spacer"/>
-                    <button onClick={onClose} style={{ fontSize: 16, color: 'var(--ink-3)', lineHeight: 1 }}>×</button>
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
+                    <Icon name="download" size={15} style={{ color: 'var(--accent)' }}/>
+                    <strong style={{ fontSize: 13.5, flex: 1 }}>Exportar a Excel</strong>
+                    <button onClick={onClose} style={{ fontSize: 18, color: 'var(--ink-3)', lineHeight: 1, padding: '0 2px' }}>×</button>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 14px' }}>
-                    <div className="field">
-                        <label className="field-label">Fecha solicitud — desde</label>
+                {/* Fecha desde / hasta */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div>
+                        <label style={lbl}>Desde</label>
                         <input className="input" type="date" value={filters.fecha_ini}
+                            style={{ width: '100%' }}
                             onChange={e => onChange({ ...filters, fecha_ini: e.target.value })}/>
                     </div>
-                    <div className="field">
-                        <label className="field-label">Fecha solicitud — hasta</label>
+                    <div>
+                        <label style={lbl}>Hasta</label>
                         <input className="input" type="date" value={filters.fecha_fin}
+                            style={{ width: '100%' }}
                             onChange={e => onChange({ ...filters, fecha_fin: e.target.value })}/>
                     </div>
                 </div>
 
-                <p style={{ marginTop: 10, fontSize: 11.5, color: 'var(--ink-3)' }}>
+                <p style={{ margin: '12px 0 0', fontSize: 11.5, color: 'var(--ink-3)' }}>
                     Sin fechas se exporta el historial completo.
                 </p>
 
-                <div className="row gap-2" style={{ marginTop: 16, justifyContent: 'flex-end' }}>
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 18 }}>
                     <Btn variant="default" onClick={onClose}>Cancelar</Btn>
-                    <Btn variant="accent" icon="download" onClick={onExport}>
-                        Descargar Excel
-                    </Btn>
+                    <Btn variant="accent" icon="download" onClick={onExport}>Descargar Excel</Btn>
                 </div>
             </div>
         </>
