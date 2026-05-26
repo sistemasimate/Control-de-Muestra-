@@ -14,6 +14,7 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard
 // Solicitudes
 Route::prefix('solicitudes')->name('solicitudes.')->group(function () {
     Route::get('/',  [SolicitudController::class, 'index'])->name('index');
+    Route::get('/export', [SolicitudController::class, 'export'])->name('export');
     Route::post('/', [SolicitudController::class, 'store'])->name('store');
     Route::get('/{solicitud}',  [SolicitudController::class, 'show'])->name('show');
     Route::put('/{solicitud}',  [SolicitudController::class, 'update'])->name('update');

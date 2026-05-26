@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\SolicitudesExport;
 use App\Models\Solicitud;
 use App\Models\SolicitudDetalle;
 use App\Models\Articulo;
@@ -14,6 +15,7 @@ use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 
 class SolicitudController extends Controller
 {
@@ -231,6 +233,18 @@ class SolicitudController extends Controller
         ]);
 
         return back()->with('success', 'Solicitud rechazada.');
+    }
+
+    public function export(Request $req): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $filters = $req->only([
+            'fecha_ini', 'fecha_fin', 'cliente', 'estatus',
+            'vendedor', 'autorizador', 'producto', 'almacen', 'tipo_envio',
+        ]);
+
+        $filename = 'control-muestras-' . now()->format('Ymd-His') . '.xlsx';
+
+        return Excel::download(new SolicitudesExport($filters), $filename);
     }
 
     public function cancelar(Request $req, Solicitud $solicitud): RedirectResponse
