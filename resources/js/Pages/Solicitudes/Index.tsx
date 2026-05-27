@@ -18,8 +18,9 @@ const mxHora = (s: string) =>
     new Date(s).toLocaleString('es-MX', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
 const ESTATUS_LABELS: Record<EstatusId, string> = {
-    Pendiente: 'Pendiente', Aprobada: 'Aprobada', Parcial: 'Parcial',
-    Rechazada: 'Rechazada', Entregada: 'Entregada', Cancelada: 'Cancelada',
+    Pendiente: 'Pendiente', Aprobada: 'Aprobada',
+    'Entrega completa': 'Entrega completa', 'Entrega parcial': 'Entrega parcial',
+    Rechazada: 'Rechazada', Cancelada: 'Cancelada',
     Devuelta: 'Devuelta', Cerrada: 'Cerrada',
 };
 
@@ -561,7 +562,7 @@ export default function SolicitudesIndex({ solicitudes, filtros }: Props) {
                             />
                             <select className="input" defaultValue={filtros.estatus ?? ''} style={{ width: 130 }} id="qs-estatus">
                                 <option value="">Cualquier estatus</option>
-                                {(['Pendiente','Aprobada','Parcial','Rechazada','Entregada','Cancelada','Devuelta','Cerrada'] as EstatusId[]).map(e => (
+                                {(['Pendiente','Aprobada','Entrega completa','Entrega parcial','Rechazada','Cancelada','Devuelta','Cerrada'] as EstatusId[]).map(e => (
                                     <option key={e} value={e}>{e}</option>
                                 ))}
                             </select>
@@ -843,7 +844,7 @@ export default function SolicitudesIndex({ solicitudes, filtros }: Props) {
                                 <EditField label="Estatus">
                                     <select className="input" value={findEstatus} onChange={e => setFindEstatus(e.target.value)}>
                                         <option value="">Cualquiera</option>
-                                        {(['Pendiente','Aprobada','Parcial','Rechazada','Entregada','Cancelada','Devuelta','Cerrada'] as EstatusId[]).map(e => (
+                                        {(['Pendiente','Aprobada','Entrega completa','Entrega parcial','Rechazada','Cancelada','Devuelta','Cerrada'] as EstatusId[]).map(e => (
                                             <option key={e} value={e}>{e}</option>
                                         ))}
                                     </select>
@@ -909,19 +910,19 @@ export default function SolicitudesIndex({ solicitudes, filtros }: Props) {
                         <Btn variant="default" icon="plus" onClick={enterAdd} disabled={!perms.nueva || !!flash.success || !!s}>Crear</Btn>
                         <Btn variant="default" icon="download" onClick={() => setShowExportPanel(true)}>Exportar Excel</Btn>
                         {s && !editing && <Btn variant="default" icon="download">PDF</Btn>}
-                        {s && !editing && s.estatus !== 'Cancelada' && s.estatus !== 'Entrega completa' && s.estatus !== 'Entregada' && s.estatus !== 'Cerrada' && (
+                        {s && !editing && s.estatus !== 'Cancelada' && s.estatus !== 'Entrega completa' && s.estatus !== 'Cerrada' && (
                             <Btn variant="danger" icon="x" onClick={() => setShowCancelDialog(true)}>
                                 Cancelar doc.
                             </Btn>
                         )}
                         <div className="right">
-                            {!editing && s && (s.estatus === 'Entrega completa' || s.estatus === 'Entrega parcial' || s.estatus === 'Entregada' || s.estatus === 'Parcial') && s.entregas && s.entregas.length > 0 && (
+                            {!editing && s && (s.estatus === 'Entrega completa' || s.estatus === 'Entrega parcial') && s.entregas && s.entregas.length > 0 && (
                                 <Btn variant="default" icon="truck"
                                     onClick={() => router.visit(`/solicitudes/${s.folio}/entrega/${s.entregas![s.entregas!.length - 1].id}`)}>
                                     Ver entregas ({s.entregas.length})
                                 </Btn>
                             )}
-                            {!editing && s && s.estatus !== 'Cancelada' && s.estatus !== 'Rechazada' && s.estatus !== 'Entrega completa' && s.estatus !== 'Entregada' && s.estatus !== 'Cerrada' && (
+                            {!editing && s && s.estatus !== 'Cancelada' && s.estatus !== 'Rechazada' && s.estatus !== 'Entrega completa' && s.estatus !== 'Cerrada' && (
                                 <CopiarADropdown folio={s.folio}/>
                             )}
                             {canEdit && !editing && (
